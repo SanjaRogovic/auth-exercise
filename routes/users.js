@@ -14,6 +14,15 @@ usersRouter.post("/", async (req, res) => {
     }
 })
 
+usersRouter.get("/", async (req, res) => {
+    try {
+        const response = await User.find()
+        res.status(200).json(response)
+    } catch (err) {
+        res.status(500).json(err)
+    }
+})
+
 
 
 

@@ -11,7 +11,7 @@ app.use("/api/users", usersRouter)
 const port = process.env.PORT || 8000
 
 
-client.on("Connected", () => {
+client.on("connected", () => {
     app.listen(port, () => {
         console.log(`Server listening on port ${port}`)
     })
