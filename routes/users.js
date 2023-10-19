@@ -1,12 +1,9 @@
 import express from "express";
 import User from "../models/User.js";
-// import bcrypt from "bcrypt"
+import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken";
-// import cors from "cors"
 
 const usersRouter = express.Router();
-
-// usersRouter.use(cors())
 
 usersRouter.use(express.urlencoded({ extended: true }));
 
@@ -17,6 +14,7 @@ const generateToken = (data) => {
 };
 
 //authentication middleware
+//Implement an authorization middleware function in your application, to check whether or not a user can access certain routes.
 const auth = (req, res, next) => {
     const {token} = req.body
     if(!token){
@@ -70,7 +68,7 @@ usersRouter.get("/login", (req, res) => {
         `);
 });
 
-//Check if user exists and password is valid
+//Check if user exists and password is valid w/STATIC VALUE
 usersRouter.post("/connect", (req, res) => {
   const { username, password } = req.body;
 
@@ -88,8 +86,8 @@ usersRouter.post("/connect", (req, res) => {
     res.set("Access-Control-Expose-Headers", "token");
 
     //using res.header - provide property(authorization) and value(bearer) and concatenate token
-    //   res.header("Authorization", "Bearer " + token);
-    //   res.set("Access-Control-Expose-Headers", "token");
+    //res.header("Authorization", "Bearer " + token);
+    
 
     //Send back an HTML form with only one field (token) so that the user can check the validity of its token
     res.send(`
@@ -102,14 +100,58 @@ usersRouter.post("/connect", (req, res) => {
   }
 });
 
+//Implement a route to create a user (hash the password stored in the database with bcrypt)
+/*This time, when the user logs in, instead of checking if the login is john and the password doe in the body of the request, 
+check it against the stored value database in the database. 
+If it matches, send the user a JWT either as part of the response to the request, or as a header to the response (better).*/
+
+// usersRouter.post("/connect", async (req, res) => {
+//     const {username, password} = req.body
+//     try{
+
+//         //check if the user exists in the database
+//         const userExists = await User.findOne({username})
+//         if(!userExists){
+//             res.redirect("/login")
+//         }
+
+//         //check if the password is valid
+//         const validPassword = await bcrypt.compare(password, userExists.password)
+//         if(!validPassword){
+//             res.redirect("/login")
+//         }
+
+//         //generate token
+//         const token = generateToken({username: userExists.username})
+//         if(!token){
+//             res.redirect("/login")
+//         }
+
+//         res.set("token", token)
+//         res.set("Access-Control-Expose-Headers", "token");
+
+//         res.send(`
+//         <form action="/api/users/checkJWT" method="post">
+//               <label> Token </label>
+//               <input type="text" name="token" placeholder="Login token" />
+//               <input type="submit" value="Submit" />
+//           </form>
+//         `)
+
+//     }catch(err){
+//         res.status(500).json(err)
+//     }
+// })
+
+
 usersRouter.post("/checkJWT", auth, (req, res) => {
     const { token } = req.body;
     try{
         jwt.verify(token, secret, () => {
             if (!token) {
-              return res.redirect("/login"); //If the JWT token is invalid: we redirect the user to the /login page
+              return res.redirect("/login"); //If the JWT cannot be verified (or the JWT payload does not match your role-based authorization system), access shall be denied.
             } else {
-              res.redirect("/admin");
+              res.redirect("/admin"); //If the user sends a JWT as part of the request to the routes you want to secure, access will be granted after verifying the JWT against the secret (and any other payload you have attached to it and wish to check).
             }
           });
     } catch(err){
