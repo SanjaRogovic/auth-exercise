@@ -1,9 +1,14 @@
 import express from "express";
 import User from "../models/User.js"
-import bcrypt from "bcrypt"
+// import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken";
+import cors from "cors"
 
 const usersRouter = express.Router()
+
+usersRouter.use(cors())
+
+usersRouter.use(express.urlencoded({extended: true}));
 
 const secret = process.env.SECRET
 
@@ -34,7 +39,7 @@ usersRouter.get("/", async (req, res) => {
 
 //Create GET /login that sends an HTML form with two fileds: login username and password
 //The result of the form is sent on POST /connect
-usersRouter.get("/login", async (req, res) => {
+usersRouter.get("/login", (req, res) => {
     try {
         res.send(`
         <form action="/api/users/connect" method="post">
@@ -55,64 +60,78 @@ usersRouter.get("/login", async (req, res) => {
 usersRouter.post("/connect", async (req, res) => {
     const {username, password} = req.body
     try{
-        // const userExists = await User.findOne({username, password});
-        // console.log(userExists)
+        // const userExists = await User.findOne({username});
+        // // console.log(userExists)
         // if (!userExists) {
-        //   return res.status(404).send({ message: `User with ${email}" does not exists` });
+        //   return res.redirect("/login")
         // }
 
         // const validPassword = await bcrypt.compare(password, userExists.password)
-        // console.log(validPassword)
+        // // console.log(validPassword)
         // if (!validPassword) {
-        //     return res.status(404).send({message: `User with ${password} does not exists`})
+        //     return res.redirect("/login")
         // }
 
-        // const token = generateToken({email: userExists.email})
+        // const token = generateToken({username: userExists.username})
+        // if (!token) {
+        //     res.redirect("/login");  //if false, redirect the user to login
+        //   }
+        // console.log(token);
 
 
-        //check if the login is john and the password doe in req.body
-        if (!username === "John" && password === "Doe") {  
-          return res.redirect("/login");
+        //check if the login is John and the password Doe in req.body
+        if (username != "John" && password != "Doe") {  
+          return res.redirect("/api/users/login");
         } else {
           const token = generateToken({ username: "John" }); //if true sign a JWT sontaining a payload with your secret key
-
-          if (!token) {
-            res.redirect("/login");  //if false, redirect the user to login
-          }
-
           console.log(token);
 
-          res.set(token);
+          res.set("token", token);
           res.set("Access-Control-Expose-Headers", "token"); //Set the JWT as a header to the response - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
 
           //Send back an HTML form with only one field (token) so that the user can check the validity of its token
           res.send(`
-          <form action="/api/users/checkJWT" method="post">
+          <form action="/api/users/connect/checkJWT" method="post">
               <label> Token </label>
               <input type="text" />
               <input type="submit" value="Submit" />
           </form>
           `);
         }
-    } catch (err) {
+    }catch(err) {
+            res.status(500).json(err)
+        
+    }
+} 
+)
+
+
+usersRouter.post("/connect/checkJWT", async (req, res) => {
+    const {token} = req.body
+    try {
+        // const response = await User.findOne(token)
+
+        const verifyToken = jwt.verify(token, secret, () => {
+
+            if (!token){
+                return res.redirect("/api/users/login") //If the JWT token is invalid: we redirect the user to the /login page
+            }
+        })
+        res.send(verifyToken)
+    } catch(err){
         res.status(500).json(err)
     }
 })
 
 
-usersRouter.post("/checkJWT", async (req, res) => {
-    const {token} = req.body
-    try {
-        // const response = await User.findOne(token)
-
-        if(!token){
-            res.redirect("/login") //If the JWT token is invalid: we redirect the user to the /login page
-        } else {
-            res.redirect("/admin") //If the JWT token is verified (and the payload matches what you previously set; e.g: admin: true for example): we redirect the user to the admin page
-        }
+usersRouter.post("/admin", (req, res) => {
+    try{
+        res.send(`
+        <h1> You are on admin page </h1>
+        `)
 
     } catch(err){
-        res.status(500).json8err
+        res.status(500).json(err)
     }
 })
 
