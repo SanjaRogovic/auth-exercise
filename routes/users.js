@@ -21,11 +21,11 @@ const auth = (req, res, next) => {
         return res.sendStatus(401)
     }
 
-    jwt.verify(token, secret, (err, username) => {
+    jwt.verify(token, secret, (err, User) => {
         if(err){
             return res.sendStatus(401)
         }
-        req.username = username
+        req.user = User
         next()
     })
 }
@@ -145,21 +145,11 @@ If it matches, send the user a JWT either as part of the response to the request
 
 
 usersRouter.post("/checkJWT", auth, (req, res) => {
-    const { token } = req.body;
     try{
-        jwt.verify(token, secret, () => {
-            if (!token) {
-              return res.redirect("/login"); //If the JWT cannot be verified (or the JWT payload does not match your role-based authorization system), access shall be denied.
-            } else {
-              res.redirect("/admin"); //If the user sends a JWT as part of the request to the routes you want to secure, access will be granted after verifying the JWT against the secret (and any other payload you have attached to it and wish to check).
-            }
-          });
+        res.send("You are at admin page")
     } catch(err){
         res.status(500).json(err)
     }
- 
-
-  
 });
 
 
